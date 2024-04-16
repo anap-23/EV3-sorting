@@ -1,0 +1,29 @@
+{
+    "colours": {
+      "sort_red": true,
+      "sort_green": true,
+      "sort_blue": true
+    },
+    "auto_assign_zones": {
+      "pickuppoint_auto": 1
+    },
+    "elevate": {
+      "z1": false,
+      "z2": false,
+      "z3": true,
+      "z4": false
+    },
+    "manual_assign": {
+      "Preset": "auto",
+      "pickuppoint_manual": 0,
+      "red_manual":0,
+      "green_manual": 0,
+      "blue_manual": 0,
+      "hand_pickup": 0
+    },
+    "sync": {
+      "sync_on": false,
+      "sync_off": true
+    }
+  }
+  
