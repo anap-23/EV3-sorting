@@ -1,8 +1,32 @@
 import tkinter as tk
 import json
+import paho.mqtt.client as mqtt
 
 menu_stack = []
 changes_to_save = {}
+
+broker_address = "io.adafruit.com"
+broker_port = 1883
+username = 'mohalh963'
+password = "aio_rahM12QmYPCcz2RqMxX0Q81a6NFu"  
+
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("Connected to MQTT broker")
+    else:
+        print("Failed to connect to MQTT broker")
+
+# Callback function for when a message is received
+def on_message(client, userdata, message):
+    print("Received message:", str(message.payload.decode("utf-8")))
+
+# Initialize MQTT client
+mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
+# Set MQTT broker username and password
+mqtt_client.username_pw_set(username, password)
+# Set callback function for when a message is received
+mqtt_client.on_message = on_message
+
 
 # Load configurations into dictionaries
 def load_config():
@@ -53,7 +77,8 @@ def handle_change(section, key, value):
         "Chose green": "green_manual",
         "Chose blue": "blue_manual",
         "Sync: ON": "sync_on",
-        "Sync: OFF": "sync_off"
+        "Sync: OFF": "sync_off",
+        "Preset:": "Preset"
     }
 
     # Map the section name if needed
@@ -158,4 +183,11 @@ def main():
     root.mainloop()
 
 if __name__ == "__main__":
+
+    # Connect to the MQTT broker
+    mqtt_client.connect(broker_address, broker_port)
+    mqtt_client.loop_start()
+    mqtt_client.on_connect = on_connect
+#        mqtt_client.publish("mohalh963/feeds/bth.ev3-ass", 69)
+
     main()

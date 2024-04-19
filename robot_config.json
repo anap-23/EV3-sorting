@@ -2,7 +2,7 @@
     "colours": {
         "sort_red": true,
         "sort_green": true,
-        "sort_blue": false
+        "sort_blue": true
     },
     "auto_assign_zones": {
         "pickuppoint_auto": 1
@@ -10,7 +10,7 @@
     "elevate": {
         "z1": false,
         "z2": false,
-        "z3": true,
+        "z3": false,
         "z4": false
     },
     "manual_assign": {

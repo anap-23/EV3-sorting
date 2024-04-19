@@ -4,9 +4,16 @@ import json
 import time
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import Motor, TouchSensor, ColorSensor
-from pybricks.parameters import Port, Stop, Direction
+from pybricks.parameters import Port, Stop, Direction, Button
 from pybricks.tools import wait
 from pybricks.media.ev3dev import SoundFile
+from umqtt.simple import MQTTClient
+
+# Set MQTT broker address, port, username, and password
+broker_address = "io.adafruit.com"
+broker_port = 1883
+username = 'mohalh963'
+password = "aio_rahM12QmYPCcz2RqMxX0Q81a6NFu"
 
 # Constants
 FACTORS = {
@@ -21,6 +28,26 @@ elbow = Motor(Port.B, Direction.COUNTERCLOCKWISE, [8, 40])
 base = Motor(Port.C, Direction.COUNTERCLOCKWISE, [12, 36])
 touch = TouchSensor(Port.S1)
 rgbsensor = ColorSensor(Port.S2)
+
+
+# Callback function for when the EV3 is connected to the MQTT broker
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("Connected to MQTT broker")
+        # Subscribe to the topic where EV3 receives messages from GUI
+        mqtt_client.subscribe("ev3_control")
+
+# Callback function for when a message is received
+def on_message(topic, msg):
+    payload = msg.decode("utf-8")
+    print("Received message:", payload)
+    # Parse the received message and perform corresponding actions
+    if payload == "pickup":
+        pickup()
+    elif payload == "dropoff":
+        dropoff()
+    # Add more cases as needed
+
 
 # Function to initialize gripper
 def gripper_initial():
@@ -42,7 +69,7 @@ def elbowdown():
 
 # Function to move elbow up
 def elbowup():
-    elbow.run_angle(200, 60)
+    elbow.run_angle(200, 63)
 
 # Function to perform pickup operation
 def pickup():
@@ -234,8 +261,25 @@ for key, value in settings_dict.items():
     print(key, value)
 start_on_pickup_zone()
 
+
+# Initialize MQTT client
+mqtt_client = MQTTClient(username, broker_address, broker_port, username, password)
+
+# Set callback function for when a message is received
+mqtt_client.set_callback(on_message)
+
+# Connect to MQTT broker
+mqtt_client.connect()
+
+# Subscribe to topics
+mqtt_client.subscribe(b"mohalh963/feeds/ev3-ass")
+topic= "mohalh963/feeds/bth.ev3-ass"
+
+print("Connected to MQTT broker")
 # Main loop
+
 while True:
+    mqtt_client.check_msg()
     # Position the arm to pick up the item
     print("pickup")
     pickup()
@@ -246,11 +290,11 @@ while True:
     print(read_rgb())
     itemcolor = rgb_to_color(red, green, blue)
     print(itemcolor)
+    mqtt_client.publish(topic, itemcolor)
     showinfo(itemcolor)
 
     # Sort the item based on its color
     print("sorting")
-    
     sort_item(itemcolor, settings_dict)
     print("sorting done")
     # Drop off the sorted item
@@ -266,4 +310,4 @@ while True:
 
     # Clear the EV3 screen and wait before continuing
     ev3.screen.clear()
-    time.sleep(0.1)
+    time.sleep(0.1)  # Introduce a slight delay to allow button state update
