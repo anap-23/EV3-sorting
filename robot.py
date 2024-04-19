@@ -147,29 +147,38 @@ def read_settings():
 # Function to sort item to red zone
 def sort_to_red(settings_dict):
     global red_zone
-    red_zone = settings_dict['red_manual'] if settings_dict['preset'].lower() == 'manual' else settings_dict['red_auto']
-    base_target = {1: 10, 2: 100, 3: 145, 4: 190}.get(red_zone, 0) * FACTORS['base']
-    elbow_target = (30) + settings_dict.get('z' + str(red_zone) + '_altitude', 0 * FACTORS['elbow'])
-    base.run_target(200, base_target)
-    elbow.run_target(200, elbow_target)
+    if settings_dict['sorting_red'] == True:
+        red_zone = settings_dict['red_manual'] if settings_dict['preset'].lower() == 'manual' else settings_dict['red_auto']
+        base_target = {1: 10, 2: 100, 3: 145, 4: 190}.get(red_zone, 0) * FACTORS['base']
+        elbow_target = (30) + settings_dict.get('z' + str(red_zone) + '_altitude', 0 * FACTORS['elbow'])
+        base.run_target(200, base_target)
+        elbow.run_target(200, elbow_target)
+    else:
+        elbowdown()
 
 # Function to sort item to green zone
 def sort_to_green(settings_dict):
     global green_zone
-    green_zone = settings_dict['green_manual'] if settings_dict['preset'].lower() == 'manual' else settings_dict['green_auto']
-    base_target = {1: 10, 2: 100, 3: 145, 4: 190}.get(green_zone, 0) * FACTORS['base']
-    elbow_target = (30) + settings_dict.get('z' + str(green_zone) + '_altitude', 0 * FACTORS['elbow'])
-    base.run_target(200, base_target)
-    elbow.run_target(200, elbow_target)
+    if settings_dict['sorting_green'] == True:
+        green_zone = settings_dict['green_manual'] if settings_dict['preset'].lower() == 'manual' else settings_dict['green_auto']
+        base_target = {1: 10, 2: 100, 3: 145, 4: 190}.get(green_zone, 0) * FACTORS['base']
+        elbow_target = (30) + settings_dict.get('z' + str(green_zone) + '_altitude', 0 * FACTORS['elbow'])
+        base.run_target(200, base_target)
+        elbow.run_target(200, elbow_target)
+    else:
+        elbowdown()
 
 # Function to sort item to blue zone
 def sort_to_blue(settings_dict):
     global blue_zone
-    blue_zone = settings_dict['blue_manual'] if settings_dict['preset'].lower() == 'manual' else settings_dict['blue_auto']
-    base_target = {1: 10, 2: 100, 3: 145, 4: 190}.get(blue_zone, 0) * FACTORS['base']
-    elbow_target = (30) + settings_dict.get('z' + str(blue_zone) + '_altitude', 0 * FACTORS['elbow'])
-    base.run_target(200, base_target)
-    elbow.run_target(200, elbow_target)
+    if settings_dict['sorting_blue'] == True:
+        blue_zone = settings_dict['blue_manual'] if settings_dict['preset'].lower() == 'manual' else settings_dict['blue_auto']
+        base_target = {1: 10, 2: 100, 3: 145, 4: 190}.get(blue_zone, 0) * FACTORS['base']
+        elbow_target = (30) + settings_dict.get('z' + str(blue_zone) + '_altitude', 0 * FACTORS['elbow'])
+        base.run_target(200, base_target)
+        elbow.run_target(200, elbow_target)
+    else:
+        elbowdown()
 
 # Function to return to pickup point
 def goback(settings_dict):
