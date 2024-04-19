@@ -178,7 +178,7 @@ def main():
     tk.Button(main_menu, text="View Live Output", command=create_submenu("View Live Output", view_live_output_options)).pack(side="top")
 
     tk.Button(main_menu, text="SAVE", command=write_config).pack(side="top")
-
+    print("hello")
     show_menu(main_menu)
     root.mainloop()
 

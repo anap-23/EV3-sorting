@@ -310,4 +310,4 @@ while True:
 
     # Clear the EV3 screen and wait before continuing
     ev3.screen.clear()
-    time.sleep(0.1)  # Introduce a slight delay to allow button state update
+    time.sleep(0.1)
