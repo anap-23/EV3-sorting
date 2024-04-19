@@ -7,8 +7,9 @@ changes_to_save = {}
 
 broker_address = "io.adafruit.com"
 broker_port = 1883
-username = 'mohalh963'
-password = "aio_rahM12QmYPCcz2RqMxX0Q81a6NFu"  
+username = 'YOUR USERNAME'
+password = "YOUR KEY"  
+topic = b"mohalh963/feeds/bth.ev3-ass"
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
@@ -188,6 +189,5 @@ if __name__ == "__main__":
     mqtt_client.connect(broker_address, broker_port)
     mqtt_client.loop_start()
     mqtt_client.on_connect = on_connect
-#        mqtt_client.publish("mohalh963/feeds/bth.ev3-ass", 69)
 
     main()

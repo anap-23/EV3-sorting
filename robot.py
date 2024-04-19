@@ -12,8 +12,8 @@ from umqtt.simple import MQTTClient
 # Set MQTT broker address, port, username, and password
 broker_address = "io.adafruit.com"
 broker_port = 1883
-username = 'mohalh963'
-password = "aio_rahM12QmYPCcz2RqMxX0Q81a6NFu"
+username = 'YOUR USERNAME'
+password = "YOUR KEY"
 
 # Constants
 FACTORS = {
@@ -31,11 +31,11 @@ rgbsensor = ColorSensor(Port.S2)
 
 
 # Callback function for when the EV3 is connected to the MQTT broker
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, rc, topic):
     if rc == 0:
         print("Connected to MQTT broker")
         # Subscribe to the topic where EV3 receives messages from GUI
-        mqtt_client.subscribe("ev3_control")
+        mqtt_client.subscribe(topic)
 
 # Callback function for when a message is received
 def on_message(topic, msg):
@@ -170,7 +170,6 @@ def read_settings():
         print("Error: File 'robot_config.json' not found.")
 
 
-# + settings_dict.get(f"z{red_zone}_altitude", 0
 # Function to sort item to red zone
 def sort_to_red(settings_dict):
     global red_zone
@@ -271,9 +270,8 @@ mqtt_client.set_callback(on_message)
 # Connect to MQTT broker
 mqtt_client.connect()
 
-# Subscribe to topics
-mqtt_client.subscribe(b"mohalh963/feeds/ev3-ass")
-topic= "mohalh963/feeds/bth.ev3-ass"
+
+topic= b"mohalh963/feeds/bth.ev3-ass"
 
 print("Connected to MQTT broker")
 # Main loop
