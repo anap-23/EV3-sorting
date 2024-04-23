@@ -8,12 +8,14 @@ from pybricks.parameters import Port, Stop, Direction, Button
 from pybricks.tools import wait
 from pybricks.media.ev3dev import SoundFile
 from umqtt.simple import MQTTClient
+import threading
+import sys
 
 # Set MQTT broker address, port, username, and password
 broker_address = "io.adafruit.com"
 broker_port = 1883
-username = 'YOUR USERNAME'
-password = "YOUR KEY"
+username = 'USER'
+password = "KEY"
 
 # Constants
 FACTORS = {
@@ -29,16 +31,38 @@ base = Motor(Port.C, Direction.COUNTERCLOCKWISE, [12, 36])
 touch = TouchSensor(Port.S1)
 rgbsensor = ColorSensor(Port.S2)
 
+stop_program= False
+
+#threading (threads will execute whenever possible)
+def message_check(client):
+    client.check_msg()
+
+
+def emergency_check():
+    global stop_program
+    while True:
+        if Button.UP in ev3.buttons.pressed():
+            ev3.speaker.beep()  # Optional: Makes a beep sound when the emergency stop is triggered
+            gripper.stop()
+            elbow.stop()
+            base.stop()
+            print("Emergency stop triggered!")
+            stop_program = True
+            break  # Exit the thread
+
+# Start the emergency_check function in a new thread
+threading.Thread(target=emergency_check).start()
 
 # Callback function for when the EV3 is connected to the MQTT broker
 def on_connect(client, userdata, flags, rc, topic):
     if rc == 0:
         print("Connected to MQTT broker")
         # Subscribe to the topic where EV3 receives messages from GUI
-        mqtt_client.subscribe(topic)
+        client.subscribe(topic)
 
 # Callback function for when a message is received
 def on_message(topic, msg):
+    global stop_program
     payload = msg.decode("utf-8")
     print("Received message:", payload)
     # Parse the received message and perform corresponding actions
@@ -46,8 +70,11 @@ def on_message(topic, msg):
         pickup()
     elif payload == "dropoff":
         dropoff()
+    elif payload == "EMERGENCY":
+        ev3.screen.clear()
+        showinfo("EMERGENCY STOP")
+        stop_program = True
     # Add more cases as needed
-
 
 # Function to initialize gripper
 def gripper_initial():
@@ -126,10 +153,10 @@ def read_settings():
             settings_dict['sorting_blue'] = colours_data.get('sort_blue', False)
 
             elevate_data = config_data.get('elevate', {})
-            settings_dict['z1_altitude'] = 65 if elevate_data.get('z1') is True else 0
-            settings_dict['z2_altitude'] = 65 if elevate_data.get('z2') is True else 0
-            settings_dict['z3_altitude'] = 65 if elevate_data.get('z3') is True else 0
-            settings_dict['z4_altitude'] = 65 if elevate_data.get('z4') is True else 0
+            settings_dict['z1_altitude'] = 65 if elevate_data.get('z1') else 0
+            settings_dict['z2_altitude'] = 65 if elevate_data.get('z2') else 0
+            settings_dict['z3_altitude'] = 65 if elevate_data.get('z3') else 0
+            settings_dict['z4_altitude'] = 65 if elevate_data.get('z4') else 0
 
 
             # Process auto_assign_zones data
@@ -238,7 +265,7 @@ def angle_calibration():
         base.reset_angle(0)
     base.run_target(100, 10, then=Stop.HOLD, wait=True)
 
-def start_on_pickup_zone():
+def start_on_pickup_zone(settings_dict):
     # Move the arm to the pickup zone
     elbowup()  # Lift the elbow
     pickup_zone = settings_dict.get('pickuppoint_auto') if settings_dict.get('preset').lower() == 'auto' else settings_dict.get('pickuppoint_manual', 1)
@@ -246,11 +273,19 @@ def start_on_pickup_zone():
     elbow_target = 0 + settings_dict.get('z' + str(pickup_zone) + '_altitude', 0 * FACTORS['elbow'])
     base.run_target(200, base_target)
     elbow.run_target(200, elbow_target)
+    pass
 
+# Initialize MQTT client globally
+mqtt_client = None
 
 # Initialize settings dictionary
 settings_dict = read_settings()
+# Initialize MQTT client
+mqtt_client = MQTTClient(username, broker_address, broker_port, username, password)
+mqtt_client.set_callback(on_message)
+mqtt_client.connect()
 
+threading.Thread(target=mqtt_client.check_msg).start()
 # Calibration and initialization
 angle_calibration()
 gripper_initial()
@@ -258,54 +293,45 @@ elbow.run_until_stalled(-100, then=Stop.HOLD, duty_limit=25)
 elbow.reset_angle(0)
 for key, value in settings_dict.items():
     print(key, value)
-start_on_pickup_zone()
+
+# Call start_on_pickup_zone after initializing mqtt_client
+start_on_pickup_zone(settings_dict)
 
 
-# Initialize MQTT client
-mqtt_client = MQTTClient(username, broker_address, broker_port, username, password)
 
-# Set callback function for when a message is received
-mqtt_client.set_callback(on_message)
+topic= TOPIC
 
-# Connect to MQTT broker
-mqtt_client.connect()
-
-
-topic= b"mohalh963/feeds/bth.ev3-ass"
-
-print("Connected to MQTT broker")
+showinfo("Connected to MQTT broker")
 # Main loop
-
 while True:
-    mqtt_client.check_msg()
-    # Position the arm to pick up the item
-    print("pickup")
-    pickup()
+    if stop_program:
+        sys.exit()
+    else:
+        while True:
+            # Position the arm to pick up the item
+            pickup()
+            if stop_program: break
 
-    # Read RGB values and determine item color
-    itemcolor = ""
-    red, green, blue = read_rgb()
-    print(read_rgb())
-    itemcolor = rgb_to_color(red, green, blue)
-    print(itemcolor)
-    mqtt_client.publish(topic, itemcolor)
-    showinfo(itemcolor)
+            # Read RGB values and determine item color
+            itemcolor = ""
+            red, green, blue = read_rgb()
+            itemcolor = rgb_to_color(red, green, blue)
+            mqtt_client.publish(topic, itemcolor)
+            showinfo(itemcolor)
+            if stop_program: break
 
-    # Sort the item based on its color
-    print("sorting")
-    sort_item(itemcolor, settings_dict)
-    print("sorting done")
-    # Drop off the sorted item
-    print("dropping off")
-    dropoff()
-    print("dropoff done")
+            # Sort the item based on its color
+            sort_item(itemcolor, settings_dict)
+            if stop_program: break
 
-    # Return to the pickup zone
-    print("going back")
-    #goback(settings_dict)
-    start_on_pickup_zone()
-    print("Success")
+            # Drop off the sorted item
+            dropoff()
+            if stop_program: break
+            start_on_pickup_zone(settings_dict)
 
-    # Clear the EV3 screen and wait before continuing
-    ev3.screen.clear()
-    time.sleep(0.1)
+            if stop_program: break
+
+            # Clear the EV3 screen and wait before continuing
+            ev3.screen.clear()
+            time.sleep(0.1)
+            if stop_program: break

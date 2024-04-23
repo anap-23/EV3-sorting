@@ -1,15 +1,16 @@
 import tkinter as tk
 import json
 import paho.mqtt.client as mqtt
+import time
 
 menu_stack = []
 changes_to_save = {}
 
 broker_address = "io.adafruit.com"
 broker_port = 1883
-username = 'YOUR USERNAME'
-password = "YOUR KEY"  
-topic = b"mohalh963/feeds/bth.ev3-ass"
+username = 'USER'
+password = "KEY"  
+topic = TOPIC
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
@@ -150,6 +151,11 @@ def create_submenu(title, options):
         show_menu(submenu)
     return show_submenu
 
+def emergency():
+    for x in range (6):
+        mqtt_client.publish("mohalh963/feeds/bth.ev3-ass", "EMERGENCY")
+        time.sleep(0.5)
+
 root = tk.Tk()
 main_menu = tk.Frame(root)
 
@@ -177,6 +183,8 @@ def main():
 
     view_live_output_options = [("View Live Output", ["Open Live Output"])]
     tk.Button(main_menu, text="View Live Output", command=create_submenu("View Live Output", view_live_output_options)).pack(side="top")
+
+    tk.Button(main_menu, text="EMERGENCY", command=emergency).pack(side="top")
 
     tk.Button(main_menu, text="SAVE", command=write_config).pack(side="top")
     print("hello")
