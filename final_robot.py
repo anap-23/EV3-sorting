@@ -39,8 +39,8 @@ start_time = None
 end_time = None
 
 # Set MQTT broker address, port, username, and password
-broker_address = "io.adafruit.com"
-broker_port = 1883
+broker_address = "XXXX"
+broker_port = XXXX
 username = 'XXXX'
 password = "XXXX"  
 topic = b"XXXXX"

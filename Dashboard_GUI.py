@@ -5,8 +5,8 @@ import webbrowser
 
 menu_stack = []
 
-broker_address = "io.adafruit.com"
-broker_port = 1883
+broker_address = "XXXX"
+broker_port = XXXX
 username = 'XXXX'
 password = "XXXX"
 topic = "XXXX"  # Change to string format
