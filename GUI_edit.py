@@ -8,9 +8,9 @@ changes_to_save = {}
 
 broker_address = "io.adafruit.com"
 broker_port = 1883
-username = 'USER'
-password = "KEY"  
-topic = TOPIC
+username = 'mohalh963'
+password = "aio_eXHS71Xd3zWxJI4eKj2BXDizRTMe"  
+topic = b"mohalh963/feeds/bth.ev3-ass"
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
@@ -153,7 +153,7 @@ def create_submenu(title, options):
 
 def emergency():
     for x in range (6):
-        mqtt_client.publish("mohalh963/feeds/bth.ev3-ass", "EMERGENCY")
+        mqtt_client.publish("mohalh963/feeds/bth.ev3-ass", 911)
         time.sleep(0.5)
 
 root = tk.Tk()

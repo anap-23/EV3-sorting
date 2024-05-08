@@ -30,6 +30,8 @@ stop_program = False
 continue_main_loop = True
 start = False
 button_ctrl = False
+activate = False
+sensor_ctrl = False
 rolling = False
 
 # Global variables for start and end times
@@ -68,38 +70,45 @@ def restore_state():
     base.run_target(200, robot_state.base_position)
 
 def emergency_check():
-    global stop_program
+    global stop_program, button_ctrl
     while True:
-        if not button_ctrl:
-            if Button.UP in ev3.buttons.pressed():
-                ev3.speaker.beep()  # Optional: Makes a beep sound when the emergency stop is triggered
-                gripper.stop()
-                elbow.stop()
-                base.stop()
-                print("Emergency stop triggered!")
-                stop_program = True
-                break  # Exit the thread
-            elif Button.LEFT in ev3.buttons.pressed():
-                pause()
+        if sensor_ctrl == False:
+            if not button_ctrl:
+                if Button.UP in ev3.buttons.pressed():
+                    ev3.speaker.beep()  # Optional: Makes a beep sound when the emergency stop is triggered
+                    gripper.stop()
+                    elbow.stop()
+                    base.stop()
+                    print("Emergency stop triggered!")
+                    stop_program = True
+                    break  # Exit the thread
+                elif Button.LEFT in ev3.buttons.pressed():
+                    pause()
 
 def pause():
-    global continue_main_loop
+    global continue_main_loop, button_ctrl
     ev3.speaker.beep()
-    gripper.hold()
-    elbow.hold()
-    base.hold()
+    ev3.screen.clear()
+    showinfo('PAUSED')
+    store_state()
     print("Paused!")
     continue_main_loop = False
     while not continue_main_loop:
         client.check_msg()
-        if not button_ctrl:
-            if Button.RIGHT in ev3.buttons.pressed():
-                resume()
-
+        gripper.hold()
+        elbow.hold()
+        base.hold()
+        if sensor_ctrl == False:
+            if not button_ctrl:
+                if Button.RIGHT in ev3.buttons.pressed():
+                    resume()
+ 
 # Function to handle resuming
 def resume():
     global continue_main_loop
     print("Resuming...")
+    ev3.screen.clear()
+    restore_state()
     continue_main_loop = True
 
 # Start the emergency_check function in a new thread
@@ -116,7 +125,7 @@ def on_connect(client, userdata, flags, rc, topic):
 
 # This function will be called when a message is received
 def message_callback(topic, msg):
-    global stop_program, settings_dict, start, start_time, end_time, button_ctrl, rolling, belt
+    global stop_program, settings_dict, start, start_time, end_time, button_ctrl, rolling, belt, activate
 
     if msg == b'911':
         ev3.speaker.beep()  # Optional: Makes a beep sound when the emergency stop is triggered
@@ -230,11 +239,13 @@ def message_callback(topic, msg):
         settings_dict['blue_manual'] = 0
 
     elif msg == b'1451':
+        activate= True
         button_ctrl= True
         button_control()
 
     elif msg== b'1452':
         button_ctrl= False
+        activate = False
 
     elif msg == b'1601':
         start_on_pickup_zone(settings_dict)
@@ -257,7 +268,17 @@ def message_callback(topic, msg):
     
     elif msg == b'1802':
         rolling = False
-    
+
+    elif msg.decode('utf-8').startswith('88'):
+        # Remove the '88' prefix
+        start_time = msg.decode('utf-8')[2:]
+        print("Received start time:", start_time)
+
+    elif msg.decode('utf-8').startswith('77'):
+        # Remove the '77' prefix
+        end_time = msg.decode('utf-8')[2:]
+        print("Received end time:", end_time)
+
     #PAUSE
     elif msg == b'9000' and not button_ctrl:
         pause()
@@ -293,13 +314,19 @@ def closegripper():
 def elbowdown():
     elbow.run_until_stalled(-100, then=Stop.HOLD, duty_limit=25)
 
+def elbowdowntarget(settings_dict):
+    pickup_zone = settings_dict.get('pickuppoint_auto') if settings_dict.get('preset').lower() == 'auto' else settings_dict.get('pickuppoint_manual', 1)
+    elbow_target = custom_elbow_target if custom_base_target is not None else 0 + settings_dict.get('z' + str(pickup_zone) + '_altitude', 0 * FACTORS['elbow'])
+    elbow.run_target(100, elbow_target)
+
 # Function to move elbow up
 def elbowup():
-    elbow.run_angle(200, 60)
+    elbow_target= settings_dict.get('sensor_altitude')
+    elbow.run_target(100, elbow_target)
 
 # Function to perform pickup operation
 def pickup():
-    elbowdown()
+    elbowdowntarget(settings_dict)
     closegripper()
     elbowup()
 
@@ -389,6 +416,8 @@ def read_settings():
             settings_dict['red_manual'] = manual_assign_data.get('red_manual', 0)
             settings_dict['green_manual'] = manual_assign_data.get('green_manual', 0)
             settings_dict['blue_manual'] = manual_assign_data.get('blue_manual', 0)
+
+            settings_dict['sensor_altitude'] = 65
             
             return settings_dict
                 
@@ -406,7 +435,8 @@ def sort_to_red(settings_dict):
         base.run_target(200, base_target)
         elbow.run_target(200, elbow_target)
     else:
-        elbowdown()
+        elbowdowntarget(settings_dict)
+        opengripper()
 
 # Function to sort item to green zone
 def sort_to_green(settings_dict):
@@ -418,7 +448,8 @@ def sort_to_green(settings_dict):
         base.run_target(200, base_target)
         elbow.run_target(200, elbow_target)
     else:
-        elbowdown()
+        elbowdowntarget(settings_dict)
+        opengripper()
 
 # Function to sort item to blue zone
 def sort_to_blue(settings_dict):
@@ -430,7 +461,8 @@ def sort_to_blue(settings_dict):
         base.run_target(200, base_target)
         elbow.run_target(200, elbow_target)
     else:
-        elbowdown()
+        elbowdowntarget(settings_dict)
+        opengripper()
 
 # Function for sorting items based on color
 def sort_item(itemcolor, settings_dict):
@@ -441,38 +473,41 @@ def sort_item(itemcolor, settings_dict):
     elif itemcolor == "Blue":
         sort_to_blue(settings_dict)
     else:
-        dropoff()
+        elbowdowntarget(settings_dict)
+        opengripper()
+
 def button_control():
-    global button_ctrl, custom_base_target, custom_elbow_target
-    
-    while button_ctrl:
-        client.check_msg()
-        
-        # Check for button presses
-        if Button.UP in ev3.buttons.pressed():
-            elbow.run(30)
-        elif Button.DOWN in ev3.buttons.pressed():
-            elbow.run(-30)
-        elif Button.LEFT in ev3.buttons.pressed():
-            base.run(50)
-        elif Button.RIGHT in ev3.buttons.pressed():
-            base.run(-50)
-        else:
-            # If no button is pressed, stop the motors
-            base.hold()
-            elbow.hold()
+    global button_ctrl, custom_base_target, custom_elbow_target, activate
+    if activate:
+        while button_ctrl:
+            client.check_msg()
             
-        # Check if the center button is pressed to save the current position
-        if Button.CENTER in ev3.buttons.pressed():
-            base.hold()
-            elbow.hold()
-            settings_dict['preset'] = 'manual'
-            custom_base_target = base.angle()
-            custom_elbow_target = elbow.angle()
-            
-            button_ctrl = False
-            
-    print(custom_base_target, custom_elbow_target)
+            # Check for button presses
+            if Button.UP in ev3.buttons.pressed():
+                elbow.run(30)
+            elif Button.DOWN in ev3.buttons.pressed():
+                elbow.run(-30)
+            elif Button.LEFT in ev3.buttons.pressed():
+                base.run(50)
+            elif Button.RIGHT in ev3.buttons.pressed():
+                base.run(-50)
+            else:
+                # If no button is pressed, stop the motors
+                base.hold()
+                elbow.hold()
+                
+            # Check if the center button is pressed to save the current position
+            if Button.CENTER in ev3.buttons.pressed():
+                base.hold()
+                elbow.hold()
+                settings_dict['preset'] = 'manual'
+                custom_base_target = base.angle()
+                custom_elbow_target = elbow.angle()
+                
+                button_ctrl = False
+                
+        print(custom_base_target, custom_elbow_target)
+    activate = False
     main_loop()
 
 def rolling_belt():
@@ -515,7 +550,39 @@ def angle_calibration():
             base.run(-20)
         base.reset_angle(0)
     base.run_target(100, 15, then=Stop.HOLD, wait=True)
-
+    
+def calibrate_sensor():
+    global button_ctrl, activate, sensor_ctrl
+    activate = False
+    button_ctrl = True
+    sensor_ctrl = True
+    if not activate:
+        while button_ctrl:
+            client.check_msg()
+            
+            # Check for button presses
+            if Button.UP in ev3.buttons.pressed():
+                elbow.run(30)
+            elif Button.DOWN in ev3.buttons.pressed():
+                elbow.run(-30)
+            elif Button.LEFT in ev3.buttons.pressed():
+                base.run(50)
+            elif Button.RIGHT in ev3.buttons.pressed():
+                base.run(-50)
+            else:
+                # If no button is pressed, stop the motors
+                base.hold()
+                elbow.hold()
+                
+            # Check if the center button is pressed to save the current position
+            if Button.CENTER in ev3.buttons.pressed():
+                base.hold()
+                elbow.hold()
+                value= elbow.angle()
+                button_ctrl = False
+        sensor_ctrl = False
+        return value
+    
 def start_on_pickup_zone(settings_dict):
     # Move the arm to the pickup zone
     elbowup()  # Lift the elbow
@@ -550,36 +617,63 @@ def detect_zone(zone):
         elbow.run_target(200, elbow_target)
 
         # Perform pickup and detect color
-        pickup()
+        elbow.run_target(200, zone_altitudes[zone] * FACTORS['elbow'])
+        elbow_target(200, settings_dict['sensor_altitude'])
         red, green, blue = read_rgb()
         itemcolor = rgb_to_color(red, green, blue)
 
         # Print detected color
         print("Detected color in zone", zone, "is:", itemcolor)
-        dropoff()
+        elbow.run_target(200, zone_altitudes[zone] * FACTORS['elbow'])
+        opengripper()
+        elbow.run_angle(200, 30)
         start_on_pickup_zone(settings_dict)
     else:
         print("Invalid zone number")
 
-import time
+def convert_time_to_seconds(time_str):
+    # Parse the time string into hours and minutes
+    hours = int(time_str[:2])
+    minutes = int(time_str[2:])
+    
+    # Calculate the total seconds
+    total_seconds = hours * 3600 + minutes * 60
+    
+    return total_seconds
 
-def before_start(client, start_time, end_time):
+def seconds_since_midnight():
+    # Get the current epoch time (seconds since 1/1/1970)
+    current_epoch_time = int(time.time() + 2*3600)
+    
+    # Calculate the seconds elapsed since midnight today
+    seconds_since_midnight = current_epoch_time % 86400  # 86400 seconds in a day
+    
+    return seconds_since_midnight
+
+def before_start():
+    global start, start_time, end_time
     start = False
     
     while not start:
         client.check_msg()  # Check for messages from the client
         
-        current_time = time.time() - 2 * 3600  # Adjust for timezone difference
+        current_time = seconds_since_midnight()
+        client.check_msg()
         
         # Adjust start and end times if they are not None
-        start_time_adjusted = start_time - 2 * 3600 if start_time is not None else None
-        end_time_adjusted = end_time - 2 * 3600 if end_time is not None else None
+        start_time_adjusted = convert_time_to_seconds(start_time) if start_time is not None else None
+        client.check_msg()
+        end_time_adjusted = convert_time_to_seconds(end_time) if end_time is not None else None
+        client.check_msg()
         
         print("Current time:", current_time, "Start time adjusted:", start_time_adjusted, "End time adjusted:", end_time_adjusted)
+        client.check_msg()
         
         # Check if the current time falls within the specified time range
         if start_time_adjusted is not None and end_time_adjusted is not None:
+            client.check_msg()
             if start_time_adjusted <= current_time <= end_time_adjusted:
+                client.check_msg()
                 start = True
         
         # Only check for messages from the client once per iteration
@@ -598,8 +692,11 @@ for key, value in settings_dict.items():
 
 # Call start_on_pickup_zone after initializing mqtt_client
 start_on_pickup_zone(settings_dict)
-#before_start(client, start_time, end_time)
-start=True
+settings_dict['sensor_altitude'] = calibrate_sensor()
+
+before_start()
+start = True
+
 def main_loop():
     # Main loop
     while True:
@@ -609,7 +706,7 @@ def main_loop():
             break
         else:
             while continue_main_loop:
-                current_time = time.time()
+                current_time = time.time() + 2*3600
                 current_time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(current_time))
                 print("Current time: " + current_time_str)
 
@@ -632,7 +729,8 @@ def main_loop():
                 if stop_program or not continue_main_loop: break
 
                 # Drop off the sorted item
-                dropoff()
+                if itemcolor.lower() is not 'other':
+                    dropoff()
                 client.check_msg()
                 if stop_program or not continue_main_loop: break
 
@@ -645,6 +743,8 @@ def main_loop():
                 time.sleep(0.1)
                 client.check_msg()
                 if stop_program or not continue_main_loop: break
+    if rolling== True and stop_program== False:
+        rolling_belt()
 
 if start == True:
     main_loop()

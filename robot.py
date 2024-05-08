@@ -14,8 +14,9 @@ import sys
 # Set MQTT broker address, port, username, and password
 broker_address = "io.adafruit.com"
 broker_port = 1883
-username = 'USER'
-password = "KEY"
+username = 'mohalh963'
+password = "aio_eXHS71Xd3zWxJI4eKj2BXDizRTMe"  
+topic = b"mohalh963/feeds/bth.ev3-ass"
 
 # Constants
 FACTORS = {
@@ -296,10 +297,6 @@ for key, value in settings_dict.items():
 
 # Call start_on_pickup_zone after initializing mqtt_client
 start_on_pickup_zone(settings_dict)
-
-
-
-topic= TOPIC
 
 showinfo("Connected to MQTT broker")
 # Main loop
