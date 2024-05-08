@@ -7,9 +7,9 @@ menu_stack = []
 
 broker_address = "io.adafruit.com"
 broker_port = 1883
-username = 'mohalh963'
-password = "aio_eXHS71Xd3zWxJI4eKj2BXDizRTMe"
-topic = "mohalh963/feeds/bth.ev3-ass"  # Change to string format
+username = 'XXXX'
+password = "XXXX"
+topic = "XXXX"  # Change to string format
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:

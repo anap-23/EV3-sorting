@@ -41,9 +41,9 @@ end_time = None
 # Set MQTT broker address, port, username, and password
 broker_address = "io.adafruit.com"
 broker_port = 1883
-username = 'mohalh963'
-password = "aio_eXHS71Xd3zWxJI4eKj2BXDizRTMe"  
-topic = b"mohalh963/feeds/bth.ev3-ass"
+username = 'XXXX'
+password = "XXXX"  
+topic = b"XXXXX"
 
 custom_base_target = None
 custom_elbow_target = None
