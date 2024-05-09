@@ -6,8 +6,8 @@ import webbrowser
 menu_stack = []
 
 broker_address = "XXXX"
-broker_port = XXXX
-username = 'XXXX'
+broker_port = "XXXX"
+username = "XXXX"
 password = "XXXX"
 topic = "XXXX"  # Change to string format
 
@@ -79,6 +79,8 @@ action_mapping = {
     "Detect zone 4": "1604",
     "Start time indicator": "88",
     "End time indicator": "77",
+    "Sync ON": '1701',
+    "Sync OFF": '1702',
     "Rolling belt YES": "1801",
     "Rolling belt NO": "1802",
     "Pause": "9000",
@@ -107,12 +109,13 @@ button_to_mqtt_mapping = {
     "Pause": ["Pause"],
     "Proceed": ["Proceed"],
     "EMERGENCY": ["EMERGENCY"],
-    "Start": ["START"]
+    "Start": ["START"],
+    "Sync robots": ['Sync ON', 'Sync OFF']
 }
 def handle_gui_action(action_name):
     print(action_name)
     if action_name == "VIEW_LIVE_OUTPUT":
-        webbrowser.open("https://io.adafruit.com/mohalh963/feeds/bth.ev3-ass")
+        webbrowser.open("XXXX")
     elif action_name in action_mapping:
         # Publish the value associated with the action name
         mqtt_client.publish(topic, action_mapping[action_name])
@@ -160,6 +163,7 @@ radio_options = [
     "Choose green", 
     "Choose blue",  
     "Rolling belt", 
+    "Sync robots"
 ]
 
 schedule_list = [
@@ -197,7 +201,7 @@ def create_submenu(root, title, options):
             
             # Iterate over suboptions to create radio buttons
             for suboption in suboptions:
-                button_text = suboption[0]  # Assuming the button text is the first element of each suboption tuple
+                button_text = suboption  # Assuming the button text is the first element of each suboption tuple
                 action_name = button_to_mqtt_mapping[option][suboptions.index(suboption)]
                 
                 # Create the radio button
@@ -229,7 +233,7 @@ def create_submenu(root, title, options):
         else:
             # Iterate over suboptions to create regular buttons
             for suboption in suboptions:
-                button_text = suboption[0]  # Assuming the button text is the first element of each suboption tuple
+                button_text = suboption  # Assuming the button text is the first element of each suboption tuple
                 action_name = button_to_mqtt_mapping[option][suboptions.index(suboption)]
                 
                 # Create the regular button
@@ -293,6 +297,9 @@ def main():
     # Submenu 6: Schedule Pickups
     schedule_pickups_options = [("Schedule Pickups", schedule_list)]
     tk.Button(main_menu, text="Schedule Pickups", command=lambda: create_submenu(root, "Schedule Pickups", schedule_pickups_options)).pack(side="top")
+
+    sync_options= [('Sync robots', ['YES','NO'])]
+    tk.Button(main_menu, text= 'Synchorize', command=lambda: create_submenu(root, 'Synchorize robots', sync_options)).pack(side='top')
 
     # Submenu 7: Rolling Belt
     rolling_belt_options = [("Rolling belt", ["YES", "NO"])]
